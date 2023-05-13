@@ -15,5 +15,5 @@ python -m pip install -r requirements.txt
 Run Python Script
 
 ```bash
-serverless invoke local -f hello
+serverless invoke local -f info
 ```
