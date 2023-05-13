@@ -9,7 +9,7 @@ import pandas as pd
 
 def info(event, context):
     access_token = os.environ.get("GITHUB_ACCESS_TOKEN")
-    g: object = Github(access_token, per_page=100)  # Increase items per page
+    g: object = Github(access_token, per_page=100)
 
     repositories: list[Union[str, Any]] = [
         "ethereum/go-ethereum",
@@ -47,7 +47,6 @@ def info(event, context):
                 if release_date > one_year_ago:
                     yearly_releases += 1
                 elif release_date < one_year_ago:
-                    # Once we find a release more than a year old, we stop counting
                     break
 
             data['Repository'].append(repo_name)
