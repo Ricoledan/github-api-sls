@@ -26,7 +26,8 @@ def info(event, context):
         "OffchainLabs/arbitrum"
     ]
 
-    data: dict[str, list[Any]] = {'Repository': [], 'Number of contributors': [],
+    data: dict[str, list[Any]] = {'Repository': [],
+                                  'Number of contributors': [],
                                   'Number of releases in the past year': []}
 
     for repo_name in repositories:
@@ -65,7 +66,9 @@ def info(event, context):
                     print(f"Rate limit exceeded. Waiting for {i} seconds.")
                     time.sleep(1)
 
-    df = pd.DataFrame(data, columns=['Repository', 'Number of contributors', 'Number of releases in the past year'])
+    df = pd.DataFrame(data, columns=['Repository',
+                                     'Number of contributors',
+                                     'Number of releases in the past year'])
 
     return {
         'statusCode': 200,
