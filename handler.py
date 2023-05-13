@@ -1,16 +1,17 @@
 import os
 import json
-import requests
+from typing import Union, Any
 from github import Github
 from github import RateLimitExceededException
 from datetime import datetime, timedelta
 import pandas as pd
 
-def hello(event, context):
-    access_token = os.environ.get("GITHUB_ACCESS_TOKEN")
-    g = Github(access_token)
 
-    repositories = [
+def info(event, context):
+    access_token = os.environ.get("GITHUB_ACCESS_TOKEN")
+    g: object = Github(access_token, per_page=100)  # Increase items per page
+
+    repositories: list[Union[str, Any]] = [
         "ethereum/go-ethereum",
         "solana-labs/solana",
         "maticnetwork/bor",
@@ -25,7 +26,8 @@ def hello(event, context):
         "OffchainLabs/arbitrum"
     ]
 
-    data = {'Repository': [], 'Number of contributors': [], 'Number of releases in the past year': []}
+    data: dict[str, list[Any]] = {'Repository': [], 'Number of contributors': [],
+                                  'Number of releases in the past year': []}
 
     for repo_name in repositories:
         try:
@@ -34,31 +36,35 @@ def hello(event, context):
             contributors = repo.get_contributors()
             contributors_count = contributors.totalCount
 
-            headers = {'Authorization': f'token {access_token}'}
-
-            releases = repo.get_releases()
             one_year_ago = datetime.now() - timedelta(days=365)
 
+            releases = repo.get_releases()
             yearly_releases = 0
 
             for release in releases:
-                release_url = release.url
-                response = requests.get(release_url, headers=headers)
+                release_date = release.published_at
 
-                if response.status_code == 200:
-                    release_data = response.json()
-                    release_date = datetime.strptime(release_data['published_at'], '%Y-%m-%dT%H:%M:%SZ')
-
-                    if release_date > one_year_ago:
-                        yearly_releases += 1
+                if release_date > one_year_ago:
+                    yearly_releases += 1
+                elif release_date < one_year_ago:
+                    # Once we find a release more than a year old, we stop counting
+                    break
 
             data['Repository'].append(repo_name)
             data['Number of contributors'].append(contributors_count)
             data['Number of releases in the past year'].append(yearly_releases)
 
         except RateLimitExceededException:
-            print("Rate limit exceeded. Please wait for the rate limit to reset.")
-            break
+            rate_limit_reset_time = g.rate_limiting_resettime
+            current_time = datetime.now().timestamp()
+            sleep_time = max(rate_limit_reset_time - current_time, 0)
+
+            return {
+                'statusCode': 429,
+                'body': json.dumps({
+                    'message': f"Rate limit exceeded. Please wait for {sleep_time} seconds for the rate limit to reset."
+                })
+            }
 
     df = pd.DataFrame(data, columns=['Repository', 'Number of contributors', 'Number of releases in the past year'])
 
